@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import User
 
+
 # Articles are written by users, potentially set to a specific AuthorProfile
 # the body of the article itself is actually stored in a Markdown file outside
 # the database, for export via Pelican
@@ -18,7 +19,7 @@ class Article(models.Model):
     # Markdown files by category or some other way of sorting them,
     # so for now it'll just be a filename
     markdown_file = models.CharField(max_length=255)
-    slug = models.SlugField()
+    slug = models.SlugField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True, auto_now_add=True)
 
@@ -27,10 +28,21 @@ class Article(models.Model):
             return self.author.display_name
         return self.listed_author
 
+    # this probably needs a much better translation table but this will do
+    # for a prototype
+    # https://docs.python.org/3/library/stdtypes.html#str.maketrans
+    def update_slug(self):
+        new_slug = self.title.translate(str.maketrans(
+            {" ": "-",
+            ":": "-",
+            ";": "-"}
+            ))
+        self.slug = new_slug
+
     # Stub for override of .save() to handle automatic slug generation and the like
     # reference: https://docs.djangoproject.com/en/6.1/topics/db/models/#overriding-predefined-model-methods
-    # currently just uses super() to call the base save() method
     def save(self, **kwargs):
+        self.update_slug()
         super().save(**kwargs)
 
     # Stub for write_article - writes article content to Markdown file on disk
@@ -41,7 +53,8 @@ class Article(models.Model):
     def write_article(self):
         return
 
-# Tags 
+
+# Tags
 class Tags(models.Model):
     name = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -58,6 +71,7 @@ class Tags(models.Model):
 # would also be useful to have links to their social media and the like
 # this could also be handled with an intermediary Author model?
 # for now I'm going to go with that
+
 
 # AuthorProfiles are bound to a specific user for now
 # there may be a reason to make this not the case later, but for now,
